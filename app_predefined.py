@@ -131,12 +131,16 @@ if not st.session_state.mcqs:
         except Exception as e:
             st.warning(f"Could not auto-load questions: {e}")
 
-# File uploader (optional - can upload different questions)
-with st.expander("📤 Upload Different Questions (Optional)"):
+# Load questions options
+st.subheader("📚 Load Questions")
+
+tab1, tab2, tab3 = st.tabs(["📤 Upload File", "📋 Paste JSON", "ℹ️ Format Help"])
+
+with tab1:
     uploaded_file = st.file_uploader("Upload JSON file with MCQs", type=["json"])
     
     if uploaded_file:
-        if st.button("Load Questions"):
+        if st.button("Load from File"):
             st.session_state.mcqs = load_mcqs_from_json(uploaded_file)
             st.session_state.current_page = 0
             st.session_state.score = 0
@@ -144,6 +148,68 @@ with st.expander("📤 Upload Different Questions (Optional)"):
             st.session_state.explanations = {}
             st.success(f"✅ Loaded {len(st.session_state.mcqs)} questions!")
             st.rerun()
+
+with tab2:
+    json_input = st.text_area(
+        "Paste your JSON here:",
+        height=200,
+        placeholder='{\n  "questions": [\n    {\n      "question": "What is...?",\n      "options": ["A", "B", "C", "D"],\n      "correct_index": 0\n    }\n  ]\n}'
+    )
+    
+    if st.button("Load from Pasted JSON"):
+        if json_input.strip():
+            try:
+                data = json.loads(json_input)
+                if isinstance(data, dict) and "questions" in data:
+                    st.session_state.mcqs = data["questions"]
+                elif isinstance(data, list):
+                    st.session_state.mcqs = data
+                else:
+                    st.error("Invalid JSON format. Expected array of questions or {questions: [...]}")
+                    st.session_state.mcqs = []
+                
+                if st.session_state.mcqs:
+                    st.session_state.current_page = 0
+                    st.session_state.score = 0
+                    st.session_state.answered = {}
+                    st.session_state.explanations = {}
+                    st.success(f"✅ Loaded {len(st.session_state.mcqs)} questions from pasted JSON!")
+                    st.rerun()
+            except json.JSONDecodeError as e:
+                st.error(f"Invalid JSON: {str(e)}")
+        else:
+            st.warning("Please paste JSON content first")
+
+with tab3:
+    st.markdown("""
+    **JSON Format:**
+    
+    ```json
+    {
+      "questions": [
+        {
+          "question": "Your question here?",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correct_index": 2
+        }
+      ]
+    }
+    ```
+    
+    Or simply an array:
+    
+    ```json
+    [
+      {
+        "question": "Your question here?",
+        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "correct_index": 2
+      }
+    ]
+    ```
+    
+    **Note:** `correct_index` starts from 0 (0=first option, 1=second, etc.)
+    """)
 
 # Display format example
 with st.expander("📋 JSON Format Example"):
